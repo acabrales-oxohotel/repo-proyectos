@@ -1,0 +1,80 @@
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    inicializarApp();
+  });
+
+  function inicializarApp() {
+    setupFormListeners();
+    setupCarouselNavigation();
+    setupPasswordToggle();
+    setupRealTimeValidation();
+
+    inicializarSidebar();
+    inicializarNavbar();
+    inicializarBusquedaGlobal();
+    aplicarTemaGuardado();
+
+    // Verificamos si la sesión guardada tiene una cacheVersion
+    const currentUser = typeof getFromLocalStorage === 'function' ? getFromLocalStorage('currentUser') : null;
+    if (currentUser && currentUser.cacheVersion) {
+      const localVersion = getFromLocalStorage('appCacheVersion');
+      if (!localVersion) {
+        saveToLocalStorage('appCacheVersion', currentUser.cacheVersion);
+      } else if (localVersion !== currentUser.cacheVersion) {
+        localStorage.clear();
+        saveToLocalStorage('appCacheVersion', currentUser.cacheVersion);
+        saveToLocalStorage('currentUser', currentUser);
+        window.location.reload();
+        return;
+      }
+    }
+
+    if (isUserLoggedIn()) {
+      mostrarVistaHome();
+    } else {
+      mostrarVistaAuth();
+    }
+    
+    // Verificar en segundo plano por si el Apps Script cambió la versión hoy
+    verificarVersionCacheFondo();
+  }
+
+  function verificarVersionCacheFondo() {
+    if (window.google && google.script && google.script.run) {
+       google.script.run.withSuccessHandler(version => {
+         if (version && typeof getFromLocalStorage === 'function') {
+           const localVersion = getFromLocalStorage('appCacheVersion');
+           if (!localVersion) {
+             saveToLocalStorage('appCacheVersion', version);
+           } else if (localVersion !== version) {
+             const user = getFromLocalStorage('currentUser');
+             localStorage.clear();
+             saveToLocalStorage('appCacheVersion', version);
+             if (user) saveToLocalStorage('currentUser', user);
+             window.location.reload();
+           }
+         }
+       }).obtenerVersionCacheGlobal();
+    }
+  }
+
+  function mostrarVistaAuth() {
+    const vistaHome = document.getElementById("vistaHome");
+    const vistaAuth = document.getElementById("vistaAuth");
+    if (vistaHome) vistaHome.classList.add("oculto");
+    if (vistaAuth) vistaAuth.classList.remove("oculto");
+  }
+
+  function mostrarVistaHome() {
+    const vistaAuth = document.getElementById("vistaAuth");
+    const vistaHome = document.getElementById("vistaHome");
+    if (vistaAuth) vistaAuth.classList.add("oculto");
+    if (vistaHome) vistaHome.classList.remove("oculto");
+    iniciarVistaHome();
+  }
+
+  // Usada por AuthView tras un login exitoso.
+  function redirectToMainApp() {
+    mostrarVistaHome();
+  }
+</script>
